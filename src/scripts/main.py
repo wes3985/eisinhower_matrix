@@ -1,204 +1,129 @@
 import tkinter as tk
-from tkinter import messagebox
 import json
 import os
-import sys
 
-# Change the working directory to the directory containing the script
-# script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-# os.chdir(script_dir)
+# Define global variables for frames and task file
+frame1_content = None
+frame2_content = None
+frame3_content = None
+frame4_content = None
+TASKS_FILE = 'src/support_files/tasks.json'
 
-# Define the directory and file path
-SUPPORT_DIR = os.path.join("src", "support_files")
-TASKS_FILE = os.path.join(SUPPORT_DIR, "tasks.json")
+# Function to add a task to a specific frame
+def add_task(frame, task, quadrant):
+    task_frame = tk.Frame(frame)
+    task_frame.pack(fill=tk.X, pady=2)  # Add padding between tasks
 
-# Ensure the support_files directory exists
-if not os.path.exists(SUPPORT_DIR):
-    os.makedirs(SUPPORT_DIR)
+    task_label = tk.Label(task_frame, text=task, bg="lightgrey", relief="raised", padx=5, pady=5)
+    task_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-class DraggableTask(tk.Frame):
-    def __init__(self, parent, task, quadrant, bg_color, *args, **kwargs):
-        super().__init__(parent, bg=bg_color, pady=5, *args, **kwargs)
-        self.parent = parent
-        self.task = task
-        self.quadrant = quadrant
-        self.bg_color = bg_color
+    delete_button = tk.Button(task_frame, text="Delete", command=lambda: remove_task(task_frame))
+    delete_button.pack(side=tk.RIGHT, padx=5)
 
-        self.task_label = tk.Label(self, text=task, bg=bg_color, anchor='w')
-        self.task_label.pack(side='left', fill='x', expand=True)
+    save_tasks()
 
-        self.delete_button = tk.Button(self, text="Delete", command=self.delete_task)
-        self.delete_button.pack(side='right')
+# Function to remove a task from a specific frame
+def remove_task(task_frame):
+    task_frame.destroy()
+    save_tasks()
 
-        self.task_label.bind("<Button-1>", self.on_start)
-        self.task_label.bind("<B1-Motion>", self.on_drag)
-        self.task_label.bind("<ButtonRelease-1>", self.on_drop)
-
-    def on_start(self, event):
-        self._drag_data = {"x": event.x, "y": event.y}
-
-    def on_drag(self, event):
-        x = self.winfo_x() - self._drag_data["x"] + event.x
-        y = self.winfo_y() - self._drag_data["y"] + event.y
-        self.place(x=x, y=y)
-
-    def on_drop(self, event):
-        self.place_forget()
-        self.pack(fill='x', pady=5)
-
-    def delete_task(self):
-        print(f"Deleting task: {self.task} from quadrant {self.quadrant}")
-        self.destroy()
-        remove_task(self.quadrant, self.task)
-
-def add_task(quadrant, task, save=True):
-    if quadrant == 1:
-        frame = frame1_content
-        bg_color = '#ffcccb'  # Pastel Red
-    elif quadrant == 2:
-        frame = frame2_content
-        bg_color = '#aec6cf'  # Pastel Blue
-    elif quadrant == 3:
-        frame = frame3_content
-        bg_color = '#77dd77'  # Pastel Green
-    elif quadrant == 4:
-        frame = frame4_content
-        bg_color = '#fdfd96'  # Pastel Yellow
-    else:
-        print(f"Warning: Invalid quadrant {quadrant}. Task not added.")
-        return
-    
-    task_frame = DraggableTask(frame, task, quadrant, bg_color)
-    task_frame.pack(fill='x', pady=5)
-
-    if save:
-        save_tasks()
-
-def get_task():
-    task = task_entry.get()
-    try:
-        quadrant = int(quadrant_entry.get())
-        if quadrant in [1, 2, 3, 4]:
-            add_task(quadrant, task)
-        else:
-            messagebox.showerror("Invalid Input", "Please enter a number between 1 and 4.")
-    except ValueError:
-        messagebox.showerror("Invalid Input", "Please enter a valid number.")
-    task_entry.delete(0, tk.END)
-
+# Function to save tasks to a file
 def save_tasks():
     tasks = {1: [], 2: [], 3: [], 4: []}
-    for task_frame in frame1_content.winfo_children():
-        if isinstance(task_frame, DraggableTask):
-            tasks[1].append(task_frame.task)
-    for task_frame in frame2_content.winfo_children():
-        if isinstance(task_frame, DraggableTask):
-            tasks[2].append(task_frame.task)
-    for task_frame in frame3_content.winfo_children():
-        if isinstance(task_frame, DraggableTask):
-            tasks[3].append(task_frame.task)
-    for task_frame in frame4_content.winfo_children():
-        if isinstance(task_frame, DraggableTask):
-            tasks[4].append(task_frame.task)
+    for frame, quadrant in zip((frame1_content, frame2_content, frame3_content, frame4_content), range(1, 5)):
+        for task_frame in frame.winfo_children():
+            if isinstance(task_frame, tk.Frame):
+                task_label = task_frame.winfo_children()[0]
+                tasks[quadrant].append(task_label.cget("text"))
 
     with open(TASKS_FILE, 'w') as file:
         json.dump(tasks, file)
 
+# Function to load tasks from a file
 def load_tasks():
     if os.path.exists(TASKS_FILE):
         with open(TASKS_FILE, 'r') as file:
             tasks = json.load(file)
-            for quadrant, task_list in tasks.items():
-                for task in task_list:
-                    try:
-                        quadrant = int(quadrant)
-                        if quadrant in [1, 2, 3, 4]:
-                            add_task(quadrant, task, save=False)
-                        else:
-                            print(f"Warning: Invalid quadrant {quadrant} in file. Task not loaded.")
-                    except ValueError:
-                        print(f"Warning: Invalid task data for quadrant {quadrant}.")
 
-def remove_task(quadrant, task):
-    if os.path.exists(TASKS_FILE):
-        with open(TASKS_FILE, 'r') as file:
-            tasks = json.load(file)
-            
-            # Ensure the quadrant key exists
-            if quadrant not in tasks:
-                print(f"Warning: Quadrant {quadrant} not found in tasks. Task not removed.")
-                return
-            
-            # Remove the task if it exists
-            if task in tasks[quadrant]:
-                tasks[quadrant].remove(task)
-                
-                # Save the updated tasks
-                with open(TASKS_FILE, 'w') as file:
-                    json.dump(tasks, file)
-            else:
-                print(f"Warning: Task '{task}' not found in quadrant {quadrant}.")
+        for quadrant, tasks_list in tasks.items():
+            quadrant = int(quadrant)
+            frame = [frame1_content, frame2_content, frame3_content, frame4_content][quadrant - 1]
+            for task in tasks_list:
+                add_task(frame, task, quadrant)
 
-def on_closing():
-    save_tasks()
-    root.destroy()
+# Function to handle adding a task from user input
+def add_task_from_input():
+    task = task_entry.get()
+    if not task:
+        return
 
-root = tk.Tk()
-root.title("Eisenhower Matrix")
-root.geometry("600x600")
+    selected_quadrant = quadrant_var.get()
+    frame = [frame1_content, frame2_content, frame3_content, frame4_content][selected_quadrant - 1]
 
-def create_scrollable_frame(root, bg_color, relx, rely):
+    add_task(frame, task, selected_quadrant)
+
+    # Clear the task entry field
+    task_entry.delete(0, tk.END)
+
+def main():
+    global frame1_content, frame2_content, frame3_content, frame4_content
+    global task_entry, quadrant_var
+
+    root = tk.Tk()
+    root.title("Eisenhower Matrix")
+
+    # Set the window size (width x height)
+    root.geometry("800x600")  # Adjust as needed
+
+    # Create a container frame for the quadrants and the input area
     container = tk.Frame(root)
-    canvas = tk.Canvas(container, bg=bg_color, bd=0, highlightthickness=0)
-    scrollbar = tk.Scrollbar(container, orient="vertical", command=canvas.yview)
-    scrollable_frame = tk.Frame(canvas, bg=bg_color)
+    container.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
 
-    scrollable_frame.bind(
-        "<Configure>",
-        lambda e: canvas.configure(
-            scrollregion=canvas.bbox("all")
-        )
-    )
+    # Create frames for each quadrant
+    frame1_content = tk.Frame(container, bg='#ffcccb', width=200, height=300)
+    frame1_content.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+    frame2_content = tk.Frame(container, bg='#aec6cf', width=200, height=300)
+    frame2_content.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
+    frame3_content = tk.Frame(container, bg='#77dd77', width=200, height=300)
+    frame3_content.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
+    frame4_content = tk.Frame(container, bg='#fdfd96', width=200, height=300)
+    frame4_content.grid(row=1, column=1, padx=10, pady=10, sticky="nsew")
 
-    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-    canvas.configure(yscrollcommand=scrollbar.set)
+    # Configure grid weights for responsive layout
+    container.grid_rowconfigure(0, weight=1)
+    container.grid_rowconfigure(1, weight=1)
+    container.grid_columnconfigure(0, weight=1)
+    container.grid_columnconfigure(1, weight=1)
 
-    container.place(relx=relx, rely=rely, relwidth=0.5, relheight=0.5)
-    canvas.pack(side="left", fill="both", expand=True)
-    scrollbar.pack(side="right", fill="y")
+    # Add titles to the frames
+    tk.Label(frame1_content, text="Urgent & Important", bg='#ffcccb', font=('Arial', 12, 'bold')).pack()
+    tk.Label(frame2_content, text="Not Urgent & Important", bg='#aec6cf', font=('Arial', 12, 'bold')).pack()
+    tk.Label(frame3_content, text="Urgent & Not Important", bg='#77dd77', font=('Arial', 12, 'bold')).pack()
+    tk.Label(frame4_content, text="Not Urgent & Not Important", bg='#fdfd96', font=('Arial', 12, 'bold')).pack()
 
-    return scrollable_frame
+    # Add task input area at the bottom of the container
+    input_frame = tk.Frame(root)
+    input_frame.pack(side=tk.BOTTOM, pady=10, fill=tk.X)
 
-frame1_content = create_scrollable_frame(root, '#ffcccb', 0, 0)  # Pastel Red
-frame2_content = create_scrollable_frame(root, '#aec6cf', 0.5, 0)  # Pastel Blue
-frame3_content = create_scrollable_frame(root, '#77dd77', 0, 0.5)  # Pastel Green
-frame4_content = create_scrollable_frame(root, '#fdfd96', 0.5, 0.5)  # Pastel Yellow
+    task_entry = tk.Entry(input_frame, width=40)
+    task_entry.pack(side=tk.LEFT, padx=5)
 
-label1 = tk.Label(frame1_content, text="Urgent & Important", bg='#ffcccb')
-label1.pack()
+    quadrant_var = tk.IntVar(value=1)
+    for i, text in enumerate([
+        "Urgent & Important",
+        "Not Urgent & Important",
+        "Urgent & Not Important",
+        "Not Urgent & Not Important"
+    ], start=1):
+        tk.Radiobutton(input_frame, text=text, variable=quadrant_var, value=i).pack(side=tk.LEFT, padx=5)
 
-label2 = tk.Label(frame2_content, text="Not Urgent & Important", bg='#aec6cf')
-label2.pack()
+    add_task_button = tk.Button(input_frame, text="Add Task", command=add_task_from_input)
+    add_task_button.pack(side=tk.LEFT, padx=5)
 
-label3 = tk.Label(frame3_content, text="Urgent & Not Important", bg='#77dd77')
-label3.pack()
+    # Load existing tasks
+    load_tasks()
 
-label4 = tk.Label(frame4_content, text="Not Urgent & Not Important", bg='#fdfd96')
-label4.pack()
+    root.mainloop()
 
-task_entry = tk.Entry(root)
-task_entry.place(relx=0.3, rely=0.95, relwidth=0.4, relheight=0.05)
-
-quadrant_entry = tk.Entry(root)
-quadrant_entry.place(relx=0.1, rely=0.95, relwidth=0.1, relheight=0.05)
-
-add_button = tk.Button(root, text="Add Task", command=get_task)
-add_button.place(relx=0.75, rely=0.95, relwidth=0.2, relheight=0.05)
-
-# Load tasks when the application starts
-load_tasks()
-
-# Bind the close event to the on_closing function
-root.protocol("WM_DELETE_WINDOW", on_closing)
-
-root.mainloop()
+if __name__ == "__main__":
+    main()
