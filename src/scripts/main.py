@@ -2,6 +2,11 @@ import tkinter as tk
 from tkinter import messagebox
 import json
 import os
+import sys
+
+# Change the working directory to the directory containing the script
+# script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+# os.chdir(script_dir)
 
 # Define the directory and file path
 SUPPORT_DIR = os.path.join("src", "support_files")
@@ -42,6 +47,7 @@ class DraggableTask(tk.Frame):
         self.pack(fill='x', pady=5)
 
     def delete_task(self):
+        print(f"Deleting task: {self.task} from quadrant {self.quadrant}")
         self.destroy()
         remove_task(self.quadrant, self.task)
 
@@ -117,10 +123,21 @@ def remove_task(quadrant, task):
     if os.path.exists(TASKS_FILE):
         with open(TASKS_FILE, 'r') as file:
             tasks = json.load(file)
+            
+            # Ensure the quadrant key exists
+            if quadrant not in tasks:
+                print(f"Warning: Quadrant {quadrant} not found in tasks. Task not removed.")
+                return
+            
+            # Remove the task if it exists
             if task in tasks[quadrant]:
                 tasks[quadrant].remove(task)
+                
+                # Save the updated tasks
                 with open(TASKS_FILE, 'w') as file:
                     json.dump(tasks, file)
+            else:
+                print(f"Warning: Task '{task}' not found in quadrant {quadrant}.")
 
 def on_closing():
     save_tasks()
