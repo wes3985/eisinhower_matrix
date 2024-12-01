@@ -96,10 +96,10 @@ def main():
     container.grid_columnconfigure(1, weight=1)
 
     # Add titles to the frames
-    tk.Label(frame1_content, text="Urgent & Important", bg='#ffcccb', font=('Arial', 12, 'bold')).pack()
-    tk.Label(frame2_content, text="Not Urgent & Important", bg='#aec6cf', font=('Arial', 12, 'bold')).pack()
-    tk.Label(frame3_content, text="Urgent & Not Important", bg='#77dd77', font=('Arial', 12, 'bold')).pack()
-    tk.Label(frame4_content, text="Not Urgent & Not Important", bg='#fdfd96', font=('Arial', 12, 'bold')).pack()
+    tk.Label(frame1_content, text="Do ASAP", bg='#ffcccb', font=('Arial', 12, 'bold')).pack()
+    tk.Label(frame2_content, text="Plan to do soon", bg='#aec6cf', font=('Arial', 12, 'bold')).pack()
+    tk.Label(frame3_content, text="Delegate", bg='#77dd77', font=('Arial', 12, 'bold')).pack()
+    tk.Label(frame4_content, text="Backburner", bg='#fdfd96', font=('Arial', 12, 'bold')).pack()
 
     # Add task input area at the bottom of the container
     input_frame = tk.Frame(root)
@@ -110,10 +110,10 @@ def main():
 
     quadrant_var = tk.IntVar(value=1)
     for i, text in enumerate([
-        "Urgent & Important",
-        "Not Urgent & Important",
-        "Urgent & Not Important",
-        "Not Urgent & Not Important"
+        "Do ASAP",
+        "Plan to do soon",
+        "Delegate",
+        "Backburner"
     ], start=1):
         tk.Radiobutton(input_frame, text=text, variable=quadrant_var, value=i).pack(side=tk.LEFT, padx=5)
 
